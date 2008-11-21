@@ -1,4 +1,5 @@
     <div id="map"
+      align="right"
       style="border: 1px solid #979797;
              min-width: 400px;
              min-height: 400px;
@@ -9,6 +10,11 @@
     <script
       src="http://maps.google.com/maps?file=api&v=2&key=ABQIAAAAnfs7bKE82qgb3Zc2YyS-oBT2yXp_ZAY8_ufC3CFXhHIE1NvwkxSySz_REpPq-4WZA27OwgbtyR3VcA"
       type="text/javascript"></script>
+    <%
+      read_only ||= nil
+      item ||= nil
+      lines ||= []
+    %>
     <% if read_only && (item != nil) -%>
       <% form_for(item) do |f| %>
         <% for column in item.class.content_columns %>
@@ -41,11 +47,12 @@ var formPrefix = "";
     </script>
     <script type="text/javascript">
 //  var map_location = new GLatLng(getValue("latitude"), getValue("longitude"));
-var map_location = new GLatLng(47, 97);
+  var map_location = new GLatLng(47, 97);
   var marker;
   var map;
 
-  function createMarker(point, html) {
+  function createMarker(point, label, html) {
+            alert("html = " + html);
     var mark1 = new GMarker(point);
     mark1.enableDragging();
     mark1.bouncy = true;
@@ -53,7 +60,7 @@ var map_location = new GLatLng(47, 97);
       function() {
         map_location = mark1.getPoint();
         map.panTo(map_location);
-        mark1.openInfoWindowHtml(html);
+        mark1.openInfoWindowHtml("<div align='left'><strong>" + label + "</strong><br/>" + html + "</div>");
       }
     );
     return mark1;
@@ -63,17 +70,20 @@ var map_location = new GLatLng(47, 97);
     if (GBrowserIsCompatible()) {
       map = new GMap2(document.getElementById("map"));
       map.setCenter(map_location, 16);
-      map.setZoom(16);
+      map.setZoom(1);
       //marker = createMarker(map_location, getPopupHtml());
       //map.addOverlay(marker);
       map.addControl(new GLargeMapControl());
       map.addControl(new GHierarchicalMapTypeControl());
       map.enableScrollWheelZoom();
       map.enableDoubleClickZoom();
+      map.setMapType(G_HYBRID_MAP);
     }
   }  
   
-  initialize();
+  function textFor(element, tag) {
+    return element.getElementsByTagName(tag)[0].firstChild.nodeValue;
+  }
 
   function loadXml(url) {
       var request = GXmlHttp.create();
@@ -82,18 +92,45 @@ var map_location = new GLatLng(47, 97);
         if (request.readyState == 4) {
           var xmlDoc = GXml.parse(request.responseText);
           // obtain the array of markers and loop through it
-          var markers = xmlDoc.documentElement.getElementsByTagName("marker");
+          //var markers = xmlDoc.documentElement.getElementsByTagName("data");
+          var markers = new Array();
+          markers[0] = xmlDoc.documentElement;
+          var totlat = 0.0;
+          var totlon = 0.0;
+          var minlat = 190.0;
+          var maxlat = -190.0;
+          var minlon = 190.0;
+          var maxlon = -190.0;
+          var avcount = 0;
           for (var i = 0; i < markers.length; i++) {
             // obtain the attribues of each marker
-            var lat = parseFloat(markers[i].getAttribute("lat"));
-            var lng = parseFloat(markers[i].getAttribute("lng"));
+            var lat = parseFloat(textFor(markers[i], "latitude"));
+            var lng = parseFloat(textFor(markers[i], "longitude"));
+            if (lat > maxlat) {
+              maxlat = lat;
+            }
+            if (lat < minlat) {
+              minlat = lat;
+            }
+            if (lng > maxlon) {
+              maxlon = lng;
+            }
+            if (lng < minlon) {
+              minlon = lng;
+            }
+            totlat = totlat + lat;
+            totlon = totlon + lng;
+            avcount = avcount + 1;
             var point = new GLatLng(lat,lng);
-            var html = markers[i].getAttribute("html");
-            var label = markers[i].getAttribute("label");
+            var html = textFor(markers[i], "description");
+            var label = textFor(markers[i], "title");
             // create the marker
             var marker = createMarker(point,label,html);
             map.addOverlay(marker);
           }
+          map_location = new GLatLng(totlat / avcount, totlon / avcount);
+          map.setCenter(map_location);
+          map.setZoom(8);
           
          
           // ========= Now process the polylines ===========
@@ -117,6 +154,7 @@ var map_location = new GLatLng(47, 97);
       }
       request.send(null);
       }
+  initialize();
   </script>
     <% if (!read_only) -%>
       <script type="text/javascript">
@@ -137,6 +175,6 @@ var map_location = new GLatLng(47, 97);
     <% end %>
     <% if (lines != nil) -%>
       <script type="text/javascript">
-      loadXml('<%= lines -%>')
+      loadXml('<%= data -%>')
   </script>
     <% end %>

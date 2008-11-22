@@ -1,57 +1,28 @@
-    <div id="map"
-      align="right"
-      style="border: 1px solid #979797;
-             min-width: 400px;
-             min-height: 400px;
-             height: 100%;
-             background-color: #FFFFFF;
-             border: 1px solid #999999;
-             padding: 10px;"></div>
-    <script
-      src="http://maps.google.com/maps?file=api&v=2&key=ABQIAAAAnfs7bKE82qgb3Zc2YyS-oBT2yXp_ZAY8_ufC3CFXhHIE1NvwkxSySz_REpPq-4WZA27OwgbtyR3VcA"
-      type="text/javascript"></script>
-    <%
-      read_only ||= nil
-      item ||= nil
-      lines ||= []
-    %>
-    <% if read_only && (item != nil) -%>
-      <% form_for(item) do |f| %>
-        <% for column in item.class.content_columns %>
-        <%= f.hidden_field column.name %>
-        <% end %>
-      <% end %>
-    <% end %>
-    <script type="text/javascript">
-//      var formPrefix="< %= item.class.name.downcase % >_";
-var formPrefix = "";
-  
-      function getValue(id) {
-        return document.getElementById(formPrefix + id).value;
-      }
-      function setValue(id, val) {
-        document.getElementById(formPrefix + id).value = val;
-      }
-
-      function getPopupHtml() {
-        <% if item == nil -%>
-        return ""
-        <% else -%>
-        return "<b>Details</b>"
-          <% for column in item.class.content_columns -%>
-          + "<br /><b><%= column.human_name %>:</b> " + getValue("<%= column.name %>")
-          <% end -%>
-          ;
-        <% end -%>
-      }
-    </script>
-    <script type="text/javascript">
-//  var map_location = new GLatLng(getValue("latitude"), getValue("longitude"));
+<%
+  google_key='ABQIAAAAnfs7bKE82qgb3Zc2YyS-oBT2yXp_' + 
+    'ZAY8_ufC3CFXhHIE1NvwkxSySz_REpPq-4WZA27OwgbtyR3VcA'
+  read_only ||= nil
+  item ||= nil
+  lines ||= []
+%>
+<div id="map"
+  align="right"
+  style="border: 1px solid #979797;
+		 min-width: 400px;
+		 min-height: 400px;
+		 height: 100%;
+		 background-color: #FFFFFF;
+		 border: 1px solid #999999;
+		 padding: 10px;"></div>
+<script
+  src="http://maps.google.com/maps?file=api&v=2&key=<%= google_key %>"
+  type="text/javascript"></script>
+<script type="text/javascript">
   var map_location = new GLatLng(47, 97);
   var marker;
   var map;
 
-  function createMarker(point, label, html) {
+  function createMarker(point, label, html, id) {
     var mark1 = new GMarker(point);
     mark1.enableDragging();
     mark1.bouncy = true;
@@ -59,121 +30,87 @@ var formPrefix = "";
       function() {
         map_location = mark1.getPoint();
         map.panTo(map_location);
-        mark1.openInfoWindowHtml("<div align='left'><strong>" + label + "</strong><br/>" + html + "</div>");
+        var link = "";
+        if (id != "") {
+          link = "<br/><a href='/incidents/" + id + "'>More...</a>";
+        }
+        mark1.openInfoWindowHtml("<div align='left'><strong>" + label + "</strong><br/>"
+          + html + link + "</div>");
       }
     );
     return mark1;
   }
   
  function initialize() {
-    if (GBrowserIsCompatible()) {
-      map = new GMap2(document.getElementById("map"));
-      map.setCenter(map_location, 16);
-      map.setZoom(1);
-      //marker = createMarker(map_location, getPopupHtml());
-      //map.addOverlay(marker);
-      map.addControl(new GLargeMapControl());
-      map.addControl(new GHierarchicalMapTypeControl());
-      map.enableScrollWheelZoom();
-      map.enableDoubleClickZoom();
-      map.setMapType(G_HYBRID_MAP);
-    }
-  }  
+   if (GBrowserIsCompatible()) {
+     map = new GMap2(document.getElementById("map"));
+     map.setCenter(map_location, 16);
+     map.setZoom(2);
+     map.addControl(new GLargeMapControl());
+     map.addControl(new GHierarchicalMapTypeControl());
+     map.enableScrollWheelZoom();
+     map.enableDoubleClickZoom();
+     map.setMapType(G_HYBRID_MAP);
+   }
+ }  
   
-  function textFor(element, tag) {
-    return element.getElementsByTagName(tag)[0].firstChild.nodeValue;
-  }
+ function textFor(element, tag) {
+   return element.getElementsByTagName(tag)[0].firstChild.nodeValue;
+ }
 
-  function loadXml(url) {
-      var request = GXmlHttp.create();
-      request.open("GET", url, true);
-      request.onreadystatechange = function() {
-        if (request.readyState == 4) {
-          var xmlDoc = GXml.parse(request.responseText);
-          // obtain the array of markers and loop through it
-          //var markers = xmlDoc.documentElement.getElementsByTagName("data");
-          var markers = new Array();
-          markers[0] = xmlDoc.documentElement;
-          var totlat = 0.0;
-          var totlon = 0.0;
-          var minlat = 190.0;
-          var maxlat = -190.0;
-          var minlon = 190.0;
-          var maxlon = -190.0;
-          var avcount = 0;
-          for (var i = 0; i < markers.length; i++) {
-            // obtain the attribues of each marker
-            var lat = parseFloat(textFor(markers[i], "latitude"));
-            var lng = parseFloat(textFor(markers[i], "longitude"));
-            if (lat > maxlat) {
-              maxlat = lat;
-            }
-            if (lat < minlat) {
-              minlat = lat;
-            }
-            if (lng > maxlon) {
-              maxlon = lng;
-            }
-            if (lng < minlon) {
-              minlon = lng;
-            }
-            totlat = totlat + lat;
-            totlon = totlon + lng;
-            avcount = avcount + 1;
-            var point = new GLatLng(lat,lng);
-            var html = textFor(markers[i], "description");
-            var label = textFor(markers[i], "title");
-            // create the marker
-            var marker = createMarker(point,label,html);
-            map.addOverlay(marker);
-          }
-          map_location = new GLatLng(totlat / avcount, totlon / avcount);
-          map.setCenter(map_location);
-          map.setZoom(8);
-          
-         
-          // ========= Now process the polylines ===========
-          var lines = xmlDoc.documentElement.getElementsByTagName("line");
-          // read each line
-          for (var a = 0; a < lines.length; a++) {
-            // get any line attributes
-            var colour = lines[a].getAttribute("colour");
-            var width  = parseFloat(lines[a].getAttribute("width"));
-            // read each point on that line
-            var points = lines[a].getElementsByTagName("point");
-            var pts = [];
-            for (var i = 0; i < points.length; i++) {
-               pts[i] = new GLatLng(parseFloat(points[i].getAttribute("lat")),
-                                   parseFloat(points[i].getAttribute("lng")));
-            }
-            map.addOverlay(new GPolyline(pts,colour,width));
-          }
-          // ================================================           
-        }
-      }
-      request.send(null);
-      }
-  initialize();
+ function addPoints(points) {
+   var totlat = 0.0;
+   var totlon = 0.0;
+   var avcount = 0;
+   for (var i = 0; i < points.length; i++) {
+     m = points[i];
+     // obtain the attribues of each marker
+     var lat = parseFloat(textFor(m, "latitude"));
+     var lng = parseFloat(textFor(m, "longitude"));
+     totlat = totlat + lat;
+     totlon = totlon + lng;
+     avcount = avcount + 1;
+     var point = new GLatLng(lat,lng);
+     var html = textFor(m, "description");
+     var label = textFor(m, "title");
+     // create the marker
+     var id ="";
+     if (points.length > 1) {
+       id = textFor(m, "id");
+     }
+     var marker = createMarker(point,label,html, id);
+     map.addOverlay(marker);
+   }
+   return new GLatLng(totlat / avcount, totlon / avcount);
+ }
+
+ function loadXml(url) {
+   var request = GXmlHttp.create();
+   request.open("GET", url, true);
+   request.onreadystatechange = function() {
+     if (request.readyState == 4) {
+       var xmlDoc = GXml.parse(request.responseText);
+       var points = new Array();
+       points[0] = xmlDoc.documentElement;
+       var multi = (points[0].getElementsByTagName("datum").length > 0);
+       if (multi) {
+         points=points[0].getElementsByTagName("datum");
+       }
+       center = addPoints(points);
+       map.setCenter(center);
+       if (multi) {
+         map.setZoom(2);
+       } else {
+         map.setZoom(8);
+       }
+     }
+   }
+   request.send(null);
+ }
+ initialize();
+</script>
+<% if (lines != nil) -%>
+  <script type="text/javascript">
+	loadXml('<%= data -%>')
   </script>
-    <% if (!read_only) -%>
-      <script type="text/javascript">
-  GEvent.addListener(map, 'click',
-    function(overlay, point) {
-      if (point) {
-        setValue("longitude", point.x);
-        setValue("latitude", point.y);
-        if (marker != null) {
-          map.removeOverlay(marker);
-        }
-        marker = createMarker(point, getPopupHtml());
-        map.addOverlay(marker);
-      }
-    }
-  );
-  </script>
-    <% end %>
-    <% if (lines != nil) -%>
-      <script type="text/javascript">
-      loadXml('<%= data -%>')
-  </script>
-    <% end %>
+<% end %>

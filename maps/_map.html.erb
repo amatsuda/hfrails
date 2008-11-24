@@ -12,10 +12,11 @@
 		 min-width: 400px;
 <%		 if full_page -%>
 		 min-height: 800px;
+		 height: 800px;
 <%		 else -%>
 		 min-height: 400px;
+		 height: 400px;
 <%		 end -%>
-		 height: 100%;
 		 background-color: #FFFFFF;
 		 border: 1px solid #999999;
 		 padding: 10px;"></div>
@@ -49,7 +50,7 @@
           new Ajax.Request(link, {
             method: 'get',
             onSuccess: function(transport) {
-              var html = "<div align='left' id='map_info' style='min-width: 300px; min-height: 250px;'>" +
+              var html = "<div align='left' id='map_info' style='min-width: 400px; min-height: 300px; width: 400px; height: 300px;'>" +
                 transport.responseText + "</div>";
               mark1.openInfoWindowHtml(html);
             }
@@ -163,7 +164,7 @@
            method: 'get',
            parameters: params,
            onSuccess: function(transport) {
-             var html = "<div align='left' id='map_info' style='min-width: 300px; min-height: 250px;'>" +
+             var html = "<div align='left' id='map_info' style='min-width: 400px; min-height: 300px; width: 400px; height: 300px;'>" +
                transport.responseText + "</div>";
              marker.openInfoWindowHtml(html);
            }

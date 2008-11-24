@@ -46,15 +46,21 @@
         map.panTo(map_location);
         var link = "";
         if (id != "") {
-          link = show_path(id);
-          new Ajax.Request(link, {
-            method: 'get',
-            onSuccess: function(transport) {
-              var html = "<div align='left' id='map_info' style='min-width: 400px; min-height: 300px; width: 400px; height: 300px;'>" +
-                transport.responseText + "</div>";
-              mark1.openInfoWindowHtml(html);
-            }
-          });      
+       <% if show_action != nil %>
+            link = show_path(id);
+            new Ajax.Request(link, {
+              method: 'get',
+              onSuccess: function(transport) {
+                var html = "<div align='left' id='map_info' style='min-width: 400px; min-height: 300px; width: 400px; height: 300px;'>" +
+                  transport.responseText + "</div>";
+                mark1.openInfoWindowHtml(html);
+              }
+            });      
+       <% else %>
+            link = "<br/><a href='/incidents/" + id + "'>More...</a>";
+            mark1.openInfoWindowHtml("<div align='left'><strong>" + label + "</strong><br/>"
+              + html + link + "</div>");
+       <% end %>
         } else {
           mark1.openInfoWindowHtml("<div align='left'><strong>" + label + "</strong><br/>"
             + html + link + "</div>");

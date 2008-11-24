@@ -1,7 +1,8 @@
 <%
   google_key='ABQIAAAAnfs7bKE82qgb3Zc2YyS-oBT2yXp_' + 
     'ZAY8_ufC3CFXhHIE1NvwkxSySz_REpPq-4WZA27OwgbtyR3VcA'
-  read_only ||= nil
+  new_page ||= nil
+  full_page ||= false
   item ||= nil
   lines ||= []
 %>
@@ -9,7 +10,11 @@
   align="right"
   style="border: 1px solid #979797;
 		 min-width: 400px;
+<%		 if full_page -%>
+		 min-height: 800px;
+<%		 else -%>
 		 min-height: 400px;
+<%		 end -%>
 		 height: 100%;
 		 background-color: #FFFFFF;
 		 border: 1px solid #999999;
@@ -19,7 +24,6 @@
   type="text/javascript"></script>
 <script type="text/javascript">
   var map_location = new GLatLng(0, 0);
-  var marker;
   var map;
 
   function createMarker(point, label, html, id) {
@@ -32,10 +36,19 @@
         map.panTo(map_location);
         var link = "";
         if (id != "") {
-          link = "<br/><a href='/incidents/" + id + "'>More...</a>";
+          link = "/incidents/" + id;
+          new Ajax.Request(link, {
+            method: 'get',
+            onSuccess: function(transport) {
+              var html = "<div align='left' id='map_info' style='min-width: 300px; min-height: 250px;'>" +
+                transport.responseText + "</div>";
+              mark1.openInfoWindowHtml(html);
+            }
+          });      
+        } else {
+          mark1.openInfoWindowHtml("<div align='left'><strong>" + label + "</strong><br/>"
+            + html + link + "</div>");
         }
-        mark1.openInfoWindowHtml("<div align='left'><strong>" + label + "</strong><br/>"
-          + html + link + "</div>");
       }
     );
     return mark1;
@@ -108,9 +121,50 @@
    request.send(null);
  }
  initialize();
+<% if !new_page.blank? -%>
+   GEvent.addListener(map, 'click',
+     function(overlay, point) {
+       if (point) {
+         var marker = new GMarker(point);
+         marker.enableDragging();
+         marker.bouncy = true;
+         var info = null;
+         GEvent.addListener(marker, "infowindowbeforeclose",
+           function() {
+             info = document.getElementById("map_info");
+           }
+         );
+         GEvent.addListener(marker, "infowindowclose",
+           function() {
+             if (info != null) {
+               GEvent.addListener(marker, "click",
+                 function() {
+                 map_location = marker.getPoint();
+                 map.panTo(map_location);
+                 marker.openInfoWindowHtml(info);
+               });
+             }
+           }
+         );
+         map.addOverlay(marker);
+         var params = new Hash();
+         params.set("latitude", point.y);
+         params.set("longitude", point.x);
+         new Ajax.Request("<%= new_page %>", {
+           method: 'get',
+           parameters: params,
+           onSuccess: function(transport) {
+             var html = "<div align='left' id='map_info' style='min-width: 300px; min-height: 250px;'>" +
+               transport.responseText + "</div>";
+             marker.openInfoWindowHtml(html);
+           }
+         });
+       }
+     }
+   );
+<% 
+  end
+  if (lines != nil) -%>
+	loadXml('<%= data -%>');
+<%  end %>
 </script>
-<% if (lines != nil) -%>
-  <script type="text/javascript">
-	loadXml('<%= data -%>')
-  </script>
-<% end %>

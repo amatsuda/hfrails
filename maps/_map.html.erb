@@ -1,10 +1,10 @@
 <%
   google_key='ABQIAAAAnfs7bKE82qgb3Zc2YyS-oBT2yXp_' + 
     'ZAY8_ufC3CFXhHIE1NvwkxSySz_REpPq-4WZA27OwgbtyR3VcA'
-  new_page ||= nil
   full_page ||= false
-  item ||= nil
-  lines ||= []
+  show_action ||= nil
+  new_action ||= nil
+  data ||= nil
 %>
 <div id="map"
   align="right"
@@ -26,6 +26,15 @@
   var map_location = new GLatLng(0, 0);
   var map;
 
+  function show_path(id) {
+    var show_path = "<%= url_for(:controller=>controller.controller_name, :action=>show_action, :id=>'REPLACEME') %>";
+    return show_path.replace("REPLACEME", id);
+  }
+
+  function new_path() {
+    return "<%= url_for(:controller=>controller.controller_name, :action=>new_action) %>";
+  }
+
   function createMarker(point, label, html, id) {
     var mark1 = new GMarker(point);
     mark1.enableDragging();
@@ -36,7 +45,7 @@
         map.panTo(map_location);
         var link = "";
         if (id != "") {
-          link = "/incidents/" + id;
+          link = show_path(id);
           new Ajax.Request(link, {
             method: 'get',
             onSuccess: function(transport) {
@@ -121,7 +130,7 @@
    request.send(null);
  }
  initialize();
-<% if !new_page.blank? -%>
+<% if new_action != nil -%>
    GEvent.addListener(map, 'click',
      function(overlay, point) {
        if (point) {
@@ -150,7 +159,7 @@
          var params = new Hash();
          params.set("latitude", point.y);
          params.set("longitude", point.x);
-         new Ajax.Request("<%= new_page %>", {
+         new Ajax.Request(new_path(), {
            method: 'get',
            parameters: params,
            onSuccess: function(transport) {
@@ -164,7 +173,7 @@
    );
 <% 
   end
-  if (lines != nil) -%>
+  if (data != nil) -%>
 	loadXml('<%= data -%>');
 <%  end %>
 </script>
